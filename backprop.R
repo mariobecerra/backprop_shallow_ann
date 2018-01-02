@@ -115,7 +115,7 @@ ann <- function(X, y, q = 3, alpha = 0.01, n_iter = 200){
     p_minus_y = p_hat - y
     zeta = X %*% theta
     A = sigma_1(zeta)
-    dL_dbeta = mean(matrix(rep(p_minus_y, q), ncol = q, byrow = F) * A)
+    dL_dbeta = colMeans(matrix(rep(p_minus_y, q), ncol = q, byrow = F) * A)
     #dL_dbeta = mean(t(A) %*% p_minus_y)
     
     dL_dtheta <- matrix(rep(NA, nx*q), ncol = q)
@@ -187,7 +187,7 @@ dat_p <- data.frame(x, p)
 g <- qplot(x, p, geom='line')
 g + geom_point(data = dat_2, aes(x = x_1, y = g_1), colour = 'red')
 
-ann_2 <- ann(as.matrix(dat_2$x_1), dat_2$g_1, q = 4, alpha = 0.5, n_iter = 50000)
+ann_2 <- ann(as.matrix(dat_2$x_1), dat_2$g_1, q = 4, alpha = 0.3, n_iter = 10000)
 
 ann_2
 
