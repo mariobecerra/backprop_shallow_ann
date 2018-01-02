@@ -264,3 +264,21 @@ data.frame(x = x, p_2 = predict(ann_4, as.matrix(x))) %>%
 
 
 ### Example 3
+
+dat_p_3 <- data.frame(x = seq(-2,2,0.05)) %>% 
+  mutate(p = logistic_func(3 + x- 3*x^2 + 3*cos(4*x)))
+
+set.seed(280572)
+
+dat_3 <- data.frame(x = runif(300, -2, 2)) %>% 
+  mutate(g2 = rbinom(300, 1, logistic_func(3 + x- 3*x^2 + 3*cos(4*x))))
+
+dat_p_3 %>% 
+  ggplot() +
+  geom_line(aes(x, p), col = 'red') +
+  geom_jitter(data = dat_3, aes(x = x, y = g2), col ='black',
+              position = position_jitter(height=0.05), alpha = 0.4)
+
+
+
+
