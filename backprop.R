@@ -17,11 +17,11 @@ sigma_2 <- function(x){
   return(1/(1 + exp(-x)))
 }
 
-compute_p_hat <- function(theta, beta, X){
-  A = sigma_1(X %*% theta)
-  p_hat = sigma_2(A %*% beta)
-  return(p_hat)
-}
+# compute_p_hat <- function(theta, beta, X){
+#   A = sigma_1(X %*% theta)
+#   p_hat = sigma_2(A %*% beta)
+#   return(p_hat)
+# }
 
 loss_function <- function(p_hat, y){
   lossf = - 2 * mean(y*log(p_hat) + (1-y)*log(1-p_hat))
@@ -82,7 +82,7 @@ loss_function <- function(p_hat, y){
 #   geom_point(size = 0.5) +
 #   geom_line()
 
-ann <- function(X, y, q = 3, alpha = 0.01, n_iter = 200){
+ann <- function(X, y, q = 3, alpha = 0.01, n_iter = 200, init_beta = "random", init_theta = "random"){
   # X: data matrix
   # y: response vector
   # q: number of hidden nodes (including bias)
@@ -96,11 +96,18 @@ ann <- function(X, y, q = 3, alpha = 0.01, n_iter = 200){
   
   i = 0
   
-  theta = replicate(q, 0.1*runif(nx, -0.5, 0.5))
-  beta = 0.1*runif(q, -0.5, 0.5)
-  
-  init_theta = theta
-  init_beta = beta
+  if(init_beta == "random") {
+    beta = 0.1*runif(q + 1, -0.5, 0.5)
+    init_beta = beta
+  } else{
+    beta = init_beta
+  }
+  if(init_theta == "random"){
+    theta = replicate(q, 0.1*runif(nx, -0.5, 0.5))
+    init_theta = theta
+  } else {
+    theta = init_theta
+  }
   
   loss_function_df <- data_frame(
     iter = 1:n_iter,
@@ -109,17 +116,19 @@ ann <- function(X, y, q = 3, alpha = 0.01, n_iter = 200){
   while(i < n_iter){
     i = i + 1
     cat("Iter:", i, "\n")
-    p_hat = compute_p_hat(theta, beta, X)
+    zeta = X %*% theta
+    A = sigma_1(zeta)
+    A_aug = cbind(rep(1, m), A)
+    p_hat = sigma_2(A_aug %*% beta)
+    #p_hat = compute_p_hat(theta, beta, X)
     loss_function_df$lossf[i] <- loss_function(p_hat, y)
     
     p_minus_y = p_hat - y
-    zeta = X %*% theta
-    A = sigma_1(zeta)
-    dL_dbeta = colMeans(matrix(rep(p_minus_y, q), ncol = q, byrow = F) * A)
+    dL_dbeta = colMeans(matrix(rep(p_minus_y, q + 1), ncol = q + 1, byrow = F) * A_aug)
     #dL_dbeta = mean(t(A) %*% p_minus_y)
     
     dL_dtheta <- matrix(rep(NA, nx*q), ncol = q)
-    for(l in 1:length(beta)){
+    for(l in 1:ncol(dL_dtheta)){
       temp <- (beta[l] * p_minus_y * A[,l]) * (1 - A[,l])
       
       dl_dtheta_nl <- matrix(rep(temp, nx), ncol = nx, byrow = F) * X
@@ -168,7 +177,10 @@ ann <- function(X, y, q = 3, alpha = 0.01, n_iter = 200){
 predict <- function(ann, X){
   m = nrow(X)
   X = cbind(rep(1, m), X)
-  p_hat <- compute_p_hat(ann$theta, ann$beta, X)
+  zeta = X %*% ann$theta
+  A = sigma_1(zeta)
+  A_aug = cbind(rep(1, m), A)
+  p_hat = sigma_2(A_aug %*% ann$beta)
   return(p_hat)
 }
 
@@ -187,7 +199,7 @@ dat_p <- data.frame(x, p)
 g <- qplot(x, p, geom='line')
 g + geom_point(data = dat_2, aes(x = x_1, y = g_1), colour = 'red')
 
-ann_2 <- ann(as.matrix(dat_2$x_1), dat_2$g_1, q = 4, alpha = 0.3, n_iter = 10000)
+ann_2 <- ann(as.matrix(dat_2$x_1), dat_2$g_1, q = 4, alpha = 0.5, n_iter = 10000)
 
 ann_2
 
@@ -214,3 +226,30 @@ data.frame(x = x, p_2 = predict(ann_2, as.matrix(x))) %>%
 
 
 
+
+
+
+ann_3 <- ann(as.matrix(dat_2$x_1), dat_2$g_1, q = 4, alpha = 0.5, n_iter = 3000)
+ann_3
+
+ann_4 <- ann(as.matrix(dat_2$x_1), dat_2$g_1, q = 4, alpha = 0.5, n_iter = 3000, init_beta = ann_3$beta, init_theta = ann_3$theta)
+ann_4
+
+
+
+data.frame(x = x, p_2 = predict(ann_3, as.matrix(x))) %>% 
+  ggplot(aes(x = x, y = p_2)) + 
+  geom_line() +
+  geom_line(data = dat_p, aes(x = x, y = p), col='red') + 
+  ylim(c(0,1)) +
+  geom_point(data = dat_2, aes(x = x_1, y = g_1)) +
+  theme_bw()
+
+
+data.frame(x = x, p_2 = predict(ann_4, as.matrix(x))) %>% 
+  ggplot(aes(x = x, y = p_2)) + 
+  geom_line() +
+  geom_line(data = dat_p, aes(x = x, y = p), col='red') + 
+  ylim(c(0,1)) +
+  geom_point(data = dat_2, aes(x = x_1, y = g_1)) +
+  theme_bw()
