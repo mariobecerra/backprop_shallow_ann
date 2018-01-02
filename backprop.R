@@ -28,6 +28,21 @@ loss_function <- function(p_hat, y){
   return(lossf)
 }
 
+predict <- function(ann, X){
+  m = nrow(X)
+  X = cbind(rep(1, m), X)
+  zeta = X %*% ann$theta
+  A = sigma_1(zeta)
+  A_aug = cbind(rep(1, m), A)
+  p_hat = sigma_2(A_aug %*% ann$beta)
+  return(p_hat)
+}
+
+logistic_func <- function(x){
+  1/(1 + exp(-x))
+}
+
+
 
 # 
 # alpha = 0.01
@@ -174,37 +189,37 @@ ann <- function(X, y, q = 3, alpha = 0.01, n_iter = 200, init_beta = "random", i
 
 
 ### Example 2
-predict <- function(ann, X){
-  m = nrow(X)
-  X = cbind(rep(1, m), X)
-  zeta = X %*% ann$theta
-  A = sigma_1(zeta)
-  A_aug = cbind(rep(1, m), A)
-  p_hat = sigma_2(A_aug %*% ann$beta)
-  return(p_hat)
-}
 
-logistic_func <- function(x){
-  1/(1 + exp(-x))
-}
-
-
-x <- seq(-2, 2, 0.01)
-p <- logistic_func(2 - 3 * x^2) #probabilidad condicional de clase 1 (vs. 0)
 set.seed(2805721)
-x_1 <- runif(300, -2, 2)
-g_1 <- rbinom(300, 1, logistic_func(2 - 3 * x_1^2))
-dat_2 <- data.frame(x_1, g_1)
-dat_p <- data.frame(x, p)
-g <- qplot(x, p, geom='line')
-g + geom_point(data = dat_2, aes(x = x_1, y = g_1), colour = 'red')
+dat_2 <- data.frame(x_1 = runif(300, -2, 2)) %>% 
+  mutate(y = rbinom(300, 1, logistic_func(2 - 3 * x_1^2)))
 
-ann_2 <- ann(as.matrix(dat_2$x_1), dat_2$g_1, q = 4, alpha = 0.5, n_iter = 10000)
+dat_p <- data.frame(x_2 = seq(-2, 2, 0.01)) %>% 
+  mutate(p = logistic_func(2 - 3 * x_2^2))
+
+dat_p %>% 
+  ggplot() +
+  geom_line(aes(x_2, p)) +
+  geom_point(data = dat_2, aes(x = x_1, y = y), colour = 'red')
+
+ann_2 <- ann(as.matrix(dat_2$x_1), dat_2$y, q = 4, alpha = 0.5, n_iter = 10000)
 
 ann_2
 
 #ann_2$gg_deviance_iter
 
+## hacer feed forward con beta encontrados
+
+predictions_2 <- predict(ann_2, as.matrix(dat_2$x_1))
+
+dat_2 %>% 
+  mutate(p_2 = predictions_2) %>% 
+  ggplot(aes(x = x_1, y = p_2)) + 
+  geom_line() +
+  geom_line(data = dat_p, aes(x = x_2, y = p), col='red') + 
+  ylim(c(0,1)) +
+  geom_point(data = dat_2, aes(x = x_1, y = y)) +
+  theme_bw()
 
 data.frame(
   p = predict(ann_2, as.matrix(dat_2$x_1)),
@@ -212,15 +227,6 @@ data.frame(
   ggplot() +
   geom_point(aes(x, p))
 
-## hacer feed forward con beta encontrados
-
-data.frame(x = x, p_2 = predict(ann_2, as.matrix(x))) %>% 
-  ggplot(aes(x = x, y = p_2)) + 
-  geom_line() +
-  geom_line(data = dat_p, aes(x = x, y = p), col='red') + 
-  ylim(c(0,1)) +
-  geom_point(data = dat_2, aes(x = x_1, y = g_1)) +
-  theme_bw()
 
 
 
@@ -229,10 +235,11 @@ data.frame(x = x, p_2 = predict(ann_2, as.matrix(x))) %>%
 
 
 
-ann_3 <- ann(as.matrix(dat_2$x_1), dat_2$g_1, q = 4, alpha = 0.5, n_iter = 3000)
+
+ann_3 <- ann(as.matrix(dat_2$x_1), dat_2$y, q = 4, alpha = 0.5, n_iter = 3000)
 ann_3
 
-ann_4 <- ann(as.matrix(dat_2$x_1), dat_2$g_1, q = 4, alpha = 0.5, n_iter = 3000, init_beta = ann_3$beta, init_theta = ann_3$theta)
+ann_4 <- ann(as.matrix(dat_2$x_1), dat_2$y, q = 4, alpha = 0.5, n_iter = 3000, init_beta = ann_3$beta, init_theta = ann_3$theta)
 ann_4
 
 
@@ -242,7 +249,7 @@ data.frame(x = x, p_2 = predict(ann_3, as.matrix(x))) %>%
   geom_line() +
   geom_line(data = dat_p, aes(x = x, y = p), col='red') + 
   ylim(c(0,1)) +
-  geom_point(data = dat_2, aes(x = x_1, y = g_1)) +
+  geom_point(data = dat_2, aes(x = x_1, y = y)) +
   theme_bw()
 
 
@@ -251,5 +258,9 @@ data.frame(x = x, p_2 = predict(ann_4, as.matrix(x))) %>%
   geom_line() +
   geom_line(data = dat_p, aes(x = x, y = p), col='red') + 
   ylim(c(0,1)) +
-  geom_point(data = dat_2, aes(x = x_1, y = g_1)) +
+  geom_point(data = dat_2, aes(x = x_1, y = y)) +
   theme_bw()
+
+
+
+### Example 3
