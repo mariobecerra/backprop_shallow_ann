@@ -417,4 +417,72 @@ dat_4 %>%
   theme_bw()
 
 
+# Example 5
+
+p_5 <- function(x1, x2){
+  logistic_func(-5 + 10*x1 + 10*x2 - 30*x1*x2)
+}
+
+expand.grid(x1 = seq(0, 1, 0.05), x2 = seq(0, 1, 0.05)) %>% 
+  mutate(p = p_5(x1, x2)) %>% 
+  ggplot(aes(x = x1, y = x2)) + 
+  geom_tile(aes(fill = p))
+
+set.seed(2018)
+
+dat_5 <- data_frame(x1 = runif(5000, 0, 1), x2 = runif(5000, 0, 1)) %>%
+  mutate(p = p_5(x1, x2)) %>%
+  mutate(y = rbinom(5000, 1, p))
+
+dat_5 %>% 
+  ggplot(aes(x = x1, y = x2)) + 
+  geom_point(aes(color = y)) +
+  theme_bw()
+
+ann_5 <- ann(as.matrix(dat_5[, c("x1", "x2")]), 
+             dat_5$y, 
+             q = 5, 
+             alpha = 0.5, 
+             n_iter = 15000, 
+             seed = 2018)
+
+plot_convergence(ann_5)
+
+
+expand.grid(x1 = seq(0, 1, 0.05), x2 = seq(0, 1, 0.05)) %>% 
+  mutate(p = p_5(x1, x2)) %>% 
+  #rowwise %>% 
+  mutate(pred = predict(ann_5, as.matrix(.[, c("x1", "x2")]))) %>% 
+  ggplot(aes(x = x1, y = x2)) + 
+  geom_tile(aes(fill = pred))
+
+predictions_5 <- predict(ann_5, as.matrix(dat_5[, c("x1", "x2")]))
+
+data.frame(pred = predictions_5, p = p_5(dat_5$x1, dat_5$x2)) %>% 
+  ggplot() + 
+  geom_point(aes(p, pred)) +
+  geom_abline(slope = 1) +
+  xlim(0, 1) +
+  ylim(0, 1)
+
+
+
+ann_5_2 <- ann(as.matrix(dat_5[, c("x1", "x2")]), 
+               dat_5$y, 
+               q = 5, 
+               alpha = 0.5, 
+               n_iter = 100000, 
+               seed = 2018)
+
+plot_convergence(ann_5_2)
+
+predictions_5_2 <- predict(ann_5_2, as.matrix(dat_5[, c("x1", "x2")]))
+
+
+expand.grid(x1 = seq(0, 1, 0.05), x2 = seq(0, 1, 0.05)) %>% 
+  mutate(p = p_5(x1, x2)) %>% 
+  #rowwise %>% 
+  mutate(pred = predict(ann_5_2, as.matrix(.[, c("x1", "x2")]))) %>% 
+  ggplot(aes(x = x1, y = x2)) + 
+  geom_tile(aes(fill = pred))
 
