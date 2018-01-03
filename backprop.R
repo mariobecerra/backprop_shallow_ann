@@ -236,30 +236,37 @@ data.frame(
 
 
 
-ann_3 <- ann(as.matrix(dat_2$x_1), dat_2$y, q = 4, alpha = 0.5, n_iter = 3000)
-ann_3
+ann_2_1 <- ann(as.matrix(dat_2$x_1), dat_2$y, q = 4, alpha = 0.5, n_iter = 3000)
+ann_2_1
 
-ann_4 <- ann(as.matrix(dat_2$x_1), dat_2$y, q = 4, alpha = 0.5, n_iter = 3000, init_beta = ann_3$beta, init_theta = ann_3$theta)
-ann_4
+ann_2_2 <- ann(as.matrix(dat_2$x_1), dat_2$y, q = 4, alpha = 0.5, n_iter = 3000, 
+               init_beta = ann_2_1$beta, init_theta = ann_2_1$theta)
+ann_2_2
 
 
+predictions_2_1 <- predict(ann_2_1, as.matrix(dat_2$x_1))
+predictions_2_2 <- predict(ann_2_2, as.matrix(dat_2$x_1))
 
-data.frame(x = x, p_2 = predict(ann_3, as.matrix(x))) %>% 
-  ggplot(aes(x = x, y = p_2)) + 
+
+dat_2 %>% 
+  mutate(p_2 = predictions_2_1) %>% 
+  ggplot(aes(x = x_1, y = p_2)) + 
   geom_line() +
-  geom_line(data = dat_p, aes(x = x, y = p), col='red') + 
+  geom_line(data = dat_p, aes(x = x_2, y = p), col='red') + 
   ylim(c(0,1)) +
   geom_point(data = dat_2, aes(x = x_1, y = y)) +
   theme_bw()
 
 
-data.frame(x = x, p_2 = predict(ann_4, as.matrix(x))) %>% 
-  ggplot(aes(x = x, y = p_2)) + 
+dat_2 %>% 
+  mutate(p_2 = predictions_2_2) %>% 
+  ggplot(aes(x = x_1, y = p_2)) + 
   geom_line() +
-  geom_line(data = dat_p, aes(x = x, y = p), col='red') + 
+  geom_line(data = dat_p, aes(x = x_2, y = p), col='red') + 
   ylim(c(0,1)) +
   geom_point(data = dat_2, aes(x = x_1, y = y)) +
   theme_bw()
+
 
 
 
@@ -271,14 +278,48 @@ dat_p_3 <- data.frame(x = seq(-2,2,0.05)) %>%
 set.seed(280572)
 
 dat_3 <- data.frame(x = runif(300, -2, 2)) %>% 
-  mutate(g2 = rbinom(300, 1, logistic_func(3 + x- 3*x^2 + 3*cos(4*x))))
+  mutate(y = rbinom(300, 1, logistic_func(3 + x- 3*x^2 + 3*cos(4*x))))
 
 dat_p_3 %>% 
   ggplot() +
   geom_line(aes(x, p), col = 'red') +
-  geom_jitter(data = dat_3, aes(x = x, y = g2), col ='black',
-              position = position_jitter(height=0.05), alpha = 0.4)
+  geom_jitter(data = dat_3, aes(x = x, y = y), col ='black',
+              position = position_jitter(height=0.05), alpha = 0.4) +
+  theme_bw()
 
 
+
+# ann_3_1 <- nnet::nnet(y ~ x, data = dat_3, size = 3, decay = 0.001, 
+#                       entropy = T, maxit = 500)
+# 
+# dat_3 %>% 
+#   mutate(pred = ann_3_1$fitted.values) %>% 
+#   ggplot(aes(x = x, y = pred)) + 
+#   geom_line() +
+#   geom_line(data = dat_p_3, aes(x = x, y = p), col='red') + 
+#   geom_jitter(data = dat_3, aes(x = x, y = y), col ='black',
+#               position = position_jitter(height = 0.05), alpha = 0.4) +
+#   theme_bw()
+
+
+ann_3 <- ann(as.matrix(dat_3$x), dat_3$y, q = 4, alpha = 0.01, n_iter = 100000)
+
+ann_3
+
+
+#ann_2$gg_deviance_iter
+
+## hacer feed forward con beta encontrados
+
+predictions_3 <- predict(ann_3, as.matrix(dat_3$x))
+
+dat_3 %>% 
+  mutate(pred = predictions_3) %>% 
+  ggplot(aes(x = x, y = pred)) + 
+  geom_line() +
+  geom_line(data = dat_p_3, aes(x = x, y = p), col='red') + 
+  geom_jitter(data = dat_3, aes(x = x, y = y), col ='black',
+              position = position_jitter(height=0.05), alpha = 0.4) +
+  theme_bw()
 
 
