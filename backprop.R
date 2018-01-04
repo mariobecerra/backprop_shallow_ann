@@ -187,6 +187,262 @@ ann <- function(X, y, q = 3, alpha = 0.01, n_iter = 200, init_beta = "random", i
   return(out)
 }
 
+
+
+
+
+
+ann_fors <- function(X, y, q = 3, alpha = 0.01, n_iter = 200, init_beta = "random", init_theta = "random", seed = "random"){
+  # X: data matrix
+  # y: response vector
+  # q: number of hidden nodes (including bias)
+  # alpha: learning rate
+  # n_iter: number of iterations
+  
+  m = nrow(X)
+  X = cbind(rep(1, m), X)
+  nx = ncol(X)
+  
+  
+  i = 0
+  
+  if(init_beta == "random") {
+    if(seed != "random") set.seed(seed)
+    beta = 0.1*runif(q + 1, -0.5, 0.5)
+    init_beta = beta
+  } else{
+    beta = init_beta
+  }
+  if(init_theta == "random"){
+    if(seed != "random") set.seed(seed)
+    theta = replicate(q, 0.1*runif(nx, -0.5, 0.5))
+    init_theta = theta
+  } else {
+    theta = init_theta
+  }
+  
+  convergence_monitor_df <- data_frame(
+    iter = 1:n_iter,
+    lossf = as.numeric(rep(NA, n_iter)),
+    norm_diff_params = as.numeric(rep(NA, n_iter)),
+    norm_gradient = as.numeric(rep(NA, n_iter))
+  )
+  
+  while(i < n_iter){
+    i = i + 1
+    cat("Iter:", i, "\n")
+    zeta = X %*% theta
+    A = sigma_1(zeta)
+    A_aug = cbind(rep(1, m), A)
+    p_hat = sigma_2(A_aug %*% beta)
+    #p_hat = compute_p_hat(theta, beta, X)
+    
+    p_minus_y = p_hat - y
+    dL_dbeta = colMeans(matrix(rep(p_minus_y, q + 1), ncol = q + 1, byrow = F) * A_aug)
+    dL_dbeta2 = rep(NA, q+1)
+    #dL_dbeta = mean(t(A) %*% p_minus_y)
+    
+    dL_dtheta <- matrix(rep(NA, nx*q), ncol = q)
+    dl_dtheta_nl <- matrix(rep(NA, nx), ncol = nx, byrow = F)
+    sum_beta0 = 0
+    for(l in 1:q){
+      for(n in 1:nx){
+        sum_theta = 0
+        sum_beta = 0
+        for(k in 1:m){
+          sum_theta = sum_theta + (p_hat[k] - y[k])*beta[l+1]*A[k,l]*(1-A[k,l])*X[k,n]
+          sum_beta = sum_beta + (p_hat[k] - y[k])*A[k,l]
+          sum_beta0 = sum_beta0 + (p_hat[k] - y[k])
+        }
+        dL_dtheta[n,l] = sum_theta/m
+      }
+      dL_dbeta2[l+1] = sum_beta/m
+    }
+    dL_dbeta2[1] = sum_beta0/m
+    
+    # for(l in 1:ncol(dL_dtheta)){
+    #   temp <- (beta[l] * p_minus_y * A[,l]) * (1 - A[,l])
+    #   
+    #   dl_dtheta_nl <- matrix(rep(temp, nx), ncol = nx, byrow = F) * X
+    #   dL_dtheta[,l] <- colMeans(dl_dtheta_nl)
+    # }
+    
+    theta_old <- theta
+    beta_old <- beta
+    
+    beta <- beta - alpha*dL_dbeta2
+    theta <- theta - alpha*dL_dtheta
+    
+    norm_diff_beta_sq <- sum((beta - beta_old)^2)
+    norm_diff_theta_sq <- sum((theta - theta_old)^2)
+    
+    convergence_monitor_df$lossf[i] <- loss_function(p_hat, y)
+    convergence_monitor_df$norm_diff_params[i] <- sqrt(norm_diff_beta_sq + norm_diff_theta_sq)
+    convergence_monitor_df$norm_gradient[i] <- sqrt(sum(dL_dbeta^2) + sum(dL_dtheta^2))
+    
+  }
+  
+  # gg_deviance_iter <- convergence_monitor_df %>% 
+  #   ggplot(aes(iter, lossf)) + 
+  #   geom_point(size = 0.5) +
+  #   geom_line() +
+  #   theme_bw()
+  
+  out <- list(
+    beta = beta,
+    theta = theta, 
+    init_theta = init_theta,
+    init_beta = init_beta,
+    convergence_monitor_df = convergence_monitor_df
+    #gg_deviance_iter = gg_deviance_iter
+  )
+  
+  return(out)
+}
+
+
+
+
+
+
+ann_rcpp <- function(X, y, q = 3, alpha = 0.01, n_iter = 200, init_beta = "random", init_theta = "random", seed = "random"){
+  # X: data matrix
+  # y: response vector
+  # q: number of hidden nodes (including bias)
+  # alpha: learning rate
+  # n_iter: number of iterations
+  
+  m = nrow(X)
+  X = cbind(rep(1, m), X)
+  nx = ncol(X)
+  
+  
+  i = 0
+  
+  if(init_beta == "random") {
+    if(seed != "random") set.seed(seed)
+    beta = 0.1*runif(q + 1, -0.5, 0.5)
+    init_beta = beta
+  } else{
+    beta = init_beta
+  }
+  if(init_theta == "random"){
+    if(seed != "random") set.seed(seed)
+    theta = replicate(q, 0.1*runif(nx, -0.5, 0.5))
+    init_theta = theta
+  } else {
+    theta = init_theta
+  }
+  
+  convergence_monitor_df <- data_frame(
+    iter = 1:n_iter,
+    lossf = as.numeric(rep(NA, n_iter)),
+    norm_diff_params = as.numeric(rep(NA, n_iter)),
+    norm_gradient = as.numeric(rep(NA, n_iter))
+  )
+  
+  while(i < n_iter){
+    if(i %% 1000 == 0)cat("Iter:", i, "\n")
+    i = i + 1
+    zeta = X %*% theta
+    A = sigma_1(zeta)
+    A_aug = cbind(rep(1, m), A)
+    p_hat = sigma_2(A_aug %*% beta)
+    #p_hat = compute_p_hat(theta, beta, X)
+    
+    p_minus_y = p_hat - y
+    #dL_dbeta = colMeans(matrix(rep(p_minus_y, q + 1), ncol = q + 1, byrow = F) * A_aug)
+    #dL_dbeta2 = rep(NA, q+1)
+    #dL_dbeta = mean(t(A) %*% p_minus_y)
+    #dL_dtheta <- matrix(rep(NA, nx*q), ncol = q)
+    #sum_beta0 = 0
+    #gradients <- compute_gradient(X, 0.3, 0, c(1, 2), A = matrix(c(1, 1, 1, 1), ncol = 2))
+    gradients <- compute_gradient(X, p_hat, y, beta, A)
+    dL_dbeta <- gradients[[1]]
+    dL_dtheta <- gradients[[2]]
+    # print(dL_dbeta)
+    # print(dL_dtheta)
+    #print(tail(A))
+    
+    theta_old <- theta
+    beta_old <- beta
+    
+    beta <- beta - alpha*dL_dbeta
+    theta <- theta - alpha*dL_dtheta
+    
+    norm_diff_beta_sq <- sum((beta - beta_old)^2)
+    norm_diff_theta_sq <- sum((theta - theta_old)^2)
+    
+    convergence_monitor_df$lossf[i] <- loss_function(p_hat, y)
+    convergence_monitor_df$norm_diff_params[i] <- sqrt(norm_diff_beta_sq + norm_diff_theta_sq)
+    convergence_monitor_df$norm_gradient[i] <- sqrt(sum(dL_dbeta^2) + sum(dL_dtheta^2))
+    
+  }
+  
+  out <- list(
+    beta = beta,
+    theta = theta, 
+    init_theta = init_theta,
+    init_beta = init_beta,
+    convergence_monitor_df = convergence_monitor_df
+    #gg_deviance_iter = gg_deviance_iter
+  )
+  
+  return(out)
+}
+
+
+# 
+# Rcpp::cppFunction(
+# "
+# List compute_gradient(NumericMatrix X, 
+#                       NumericVector p_hat, 
+#                       NumericVector y, 
+#                       NumericVector beta,
+#                       NumericMatrix A) {
+#   int q = beta.size() - 1, nx = X.ncol(), m = X.nrow();
+# 
+#   NumericVector dL_dbeta(q+1);
+#   NumericMatrix dL_dtheta(nx, q);
+# 
+#   for(int i = 0; i < q; i++){
+#     for(int j = 0; j < nx; j++){
+#       dL_dtheta[j,i] = -10.0;
+#     }
+#   }
+# 
+#   double pk_minus_yk;
+#   double sum_beta0;
+#   double sum_theta;
+#   double sum_beta;
+#   for(int l = 0; l < q; l++){
+#     for(int n = 0; n < nx; n++){
+#       sum_theta = -2;
+#       sum_beta = 0;
+#       sum_beta0 = 0;
+#       for(int k = 0; k < m; k++){
+#         pk_minus_yk = p_hat[k] - y[k];
+#         sum_theta = sum_theta + pk_minus_yk*beta[l+1]*A[k,l]*(1-A[k,l])*X[k,n];
+#         sum_beta = sum_beta + pk_minus_yk*A[k,l];
+#         sum_beta0 = sum_beta0 + pk_minus_yk;
+#       } // end for k to m
+#       dL_dtheta[n,l] = sum_theta;
+#     } // end for n to nx
+#     dL_dbeta[l+1] = sum_beta/m;
+#   } // end for l to q
+#   dL_dbeta[0] = sum_beta0/m;
+# 
+#   return List::create(
+#      dL_dbeta,
+#      dL_dtheta
+#   );
+# }
+# "
+# )
+
+Rcpp::sourceCpp("compute_gradient.cpp")
+
+
 ### Example 1
 
 # # Number of features (including bias)
@@ -208,19 +464,19 @@ plot_convergence <- function(ann){
   
   gg_lossf <- ann$convergence_monitor_df %>% 
     ggplot(aes(iter, lossf)) + 
-    geom_point(size = 0.5) +
+    geom_line(size = 0.5) +
     geom_line() +
     theme_bw()
   
   gg_norm_diff_params <- ann$convergence_monitor_df %>% 
     ggplot(aes(iter, norm_diff_params)) + 
-    geom_point(size = 0.5) +
+    geom_line(size = 0.5) +
     geom_line() +
     theme_bw()
   
   gg_norm_gradient <- ann$convergence_monitor_df %>% 
     ggplot(aes(iter, norm_gradient)) + 
-    geom_point(size = 0.5) +
+    geom_line(size = 0.5) +
     geom_line() +
     theme_bw()
   
@@ -247,10 +503,15 @@ dat_p %>%
   geom_point(data = dat_2, aes(x = x_1, y = y), colour = 'red')
 
 ann_2 <- ann(as.matrix(dat_2$x_1), dat_2$y, q = 4, alpha = 0.3, n_iter = 15000, seed = 2018)
-
-ann_2
-
 plot_convergence(ann_2)
+
+
+ann_2_fors <- ann_fors(as.matrix(dat_2$x_1), dat_2$y, q = 4, alpha = 0.3, n_iter = 15000, seed = 2018)
+plot_convergence(ann_2_fors)
+
+
+ann_2_rcpp <- ann_rcpp(as.matrix(dat_2$x_1), dat_2$y, q = 4, alpha = 0.3, n_iter = 15000, seed = 2018)
+plot_convergence(ann_2_rcpp)
 
 
 #ann_2$gg_deviance_iter
@@ -258,6 +519,8 @@ plot_convergence(ann_2)
 ## hacer feed forward con beta encontrados
 
 predictions_2 <- predict(ann_2, as.matrix(dat_2$x_1))
+predictions_2_fors <- predict(ann_2_fors, as.matrix(dat_2$x_1))
+predictions_2_rcpp <- predict(ann_2_rcpp, as.matrix(dat_2$x_1))
 
 dat_2 %>% 
   mutate(p_2 = predictions_2) %>% 
@@ -267,6 +530,27 @@ dat_2 %>%
   ylim(c(0,1)) +
   geom_point(data = dat_2, aes(x = x_1, y = y)) +
   theme_bw()
+
+dat_2 %>% 
+  mutate(p_2 = predictions_2_fors) %>% 
+  ggplot(aes(x = x_1, y = p_2)) + 
+  geom_line() +
+  geom_line(data = dat_p, aes(x = x_2, y = p), col='red') + 
+  ylim(c(0,1)) +
+  geom_point(data = dat_2, aes(x = x_1, y = y)) +
+  theme_bw()
+
+
+
+dat_2 %>% 
+  mutate(p_2 = predictions_2_rcpp) %>% 
+  ggplot(aes(x = x_1, y = p_2)) + 
+  geom_line() +
+  geom_line(data = dat_p, aes(x = x_2, y = p), col='red') + 
+  ylim(c(0,1)) +
+  geom_point(data = dat_2, aes(x = x_1, y = y)) +
+  theme_bw()
+
 
 data.frame(
   p = predict(ann_2, as.matrix(dat_2$x_1)),
@@ -343,10 +627,13 @@ dat_p_3 %>%
 
 
 ann_3 <- ann(as.matrix(dat_3$x), dat_3$y, q = 4, alpha = 0.1, n_iter = 50000, seed = 2018)
-
-ann_3
-
 plot_convergence(ann_3)
+
+ann_3_fors <- ann_fors(as.matrix(dat_3$x), dat_3$y, q = 4, alpha = 0.1, n_iter = 50000, seed = 2018)
+plot_convergence(ann_3_fors)
+
+ann_3_rcpp <- ann_rcpp(as.matrix(dat_3$x), dat_3$y, q = 20, alpha = 0.1, n_iter = 5, seed = 2018)
+plot_convergence(ann_3_rcpp)
 
 #ann_2$gg_deviance_iter
 
@@ -356,6 +643,17 @@ predictions_3 <- predict(ann_3, as.matrix(dat_3$x))
 
 dat_3 %>% 
   mutate(pred = predictions_3) %>% 
+  ggplot(aes(x = x, y = pred)) + 
+  geom_jitter(data = dat_3, aes(x = x, y = y), col ='black',
+              position = position_jitter(height=0.05), alpha = 0.4) +
+  geom_line(color = 'blue') +
+  geom_line(data = dat_p_3, aes(x = x, y = p), col='red') + 
+  theme_bw()
+
+predictions_3_fors <- predict(ann_3_fors, as.matrix(dat_3$x))
+
+dat_3 %>% 
+  mutate(pred = predictions_3_fors) %>% 
   ggplot(aes(x = x, y = pred)) + 
   geom_jitter(data = dat_3, aes(x = x, y = y), col ='black',
               position = position_jitter(height=0.05), alpha = 0.4) +
