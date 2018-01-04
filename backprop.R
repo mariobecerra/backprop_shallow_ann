@@ -135,7 +135,7 @@ ann <- function(X, y, q = 3, alpha = 0.01, n_iter = 200, init_beta = "random", i
   
   while(i < n_iter){
     i = i + 1
-    cat("Iter:", i, "\n")
+    if(i %% 1000 == 0)cat("Iter:", i, "\n")
     zeta = X %*% theta
     A = sigma_1(zeta)
     A_aug = cbind(rep(1, m), A)
@@ -230,7 +230,7 @@ ann_fors <- function(X, y, q = 3, alpha = 0.01, n_iter = 200, init_beta = "rando
   
   while(i < n_iter){
     i = i + 1
-    cat("Iter:", i, "\n")
+    if(i %% 1000 == 0)cat("Iter:", i, "\n")
     zeta = X %*% theta
     A = sigma_1(zeta)
     A_aug = cbind(rep(1, m), A)
@@ -632,7 +632,7 @@ plot_convergence(ann_3)
 ann_3_fors <- ann_fors(as.matrix(dat_3$x), dat_3$y, q = 4, alpha = 0.1, n_iter = 50000, seed = 2018)
 plot_convergence(ann_3_fors)
 
-ann_3_rcpp <- ann_rcpp(as.matrix(dat_3$x), dat_3$y, q = 20, alpha = 0.1, n_iter = 5, seed = 2018)
+ann_3_rcpp <- ann_rcpp(as.matrix(dat_3$x), dat_3$y, q = 20, alpha = 0.1, n_iter = 50000, seed = 2018)
 plot_convergence(ann_3_rcpp)
 
 #ann_2$gg_deviance_iter
@@ -654,6 +654,17 @@ predictions_3_fors <- predict(ann_3_fors, as.matrix(dat_3$x))
 
 dat_3 %>% 
   mutate(pred = predictions_3_fors) %>% 
+  ggplot(aes(x = x, y = pred)) + 
+  geom_jitter(data = dat_3, aes(x = x, y = y), col ='black',
+              position = position_jitter(height=0.05), alpha = 0.4) +
+  geom_line(color = 'blue') +
+  geom_line(data = dat_p_3, aes(x = x, y = p), col='red') + 
+  theme_bw()
+
+predictions_3_rcpp <- predict(ann_3_rcpp, as.matrix(dat_3$x))
+
+dat_3 %>% 
+  mutate(pred = predictions_3_rcpp) %>% 
   ggplot(aes(x = x, y = pred)) + 
   geom_jitter(data = dat_3, aes(x = x, y = y), col ='black',
               position = position_jitter(height=0.05), alpha = 0.4) +
@@ -694,10 +705,10 @@ dat_p_4 %>%
 
 
 ann_4 <- ann(as.matrix(dat_4$x), dat_4$y, q = 6, alpha = 0.1, n_iter = 50000, seed = 2018)
-
-ann_4
-
 plot_convergence(ann_4)
+
+ann_4_rcpp <- ann_4_rcpp(as.matrix(dat_4$x), dat_4$y, q = 6, alpha = 0.1, n_iter = 50000, seed = 2018)
+plot_convergence(ann_4_rcpp)
 
 #ann_2$gg_deviance_iter
 
@@ -728,9 +739,9 @@ expand.grid(x1 = seq(0, 1, 0.05), x2 = seq(0, 1, 0.05)) %>%
 
 set.seed(2018)
 
-dat_5 <- data_frame(x1 = runif(5000, 0, 1), x2 = runif(5000, 0, 1)) %>%
+dat_5 <- data_frame(x1 = runif(1000, 0, 1), x2 = runif(1000, 0, 1)) %>%
   mutate(p = p_5(x1, x2)) %>%
-  mutate(y = rbinom(5000, 1, p))
+  mutate(y = rbinom(1000, 1, p))
 
 dat_5 %>% 
   ggplot(aes(x = x1, y = x2)) + 
@@ -749,12 +760,11 @@ plot_convergence(ann_5)
 
 expand.grid(x1 = seq(0, 1, 0.05), x2 = seq(0, 1, 0.05)) %>% 
   mutate(p = p_5(x1, x2)) %>% 
-  #rowwise %>% 
   mutate(pred = predict(ann_5, as.matrix(.[, c("x1", "x2")]))) %>% 
   ggplot(aes(x = x1, y = x2)) + 
   geom_tile(aes(fill = pred))
 
-predictions_5 <- predict(ann_5, as.matrix(dat_5[, c("x1", "x2")]))
+# predictions_5 <- predict(ann_5, as.matrix(dat_5[, c("x1", "x2")]))
 
 data.frame(pred = predictions_5, p = p_5(dat_5$x1, dat_5$x2)) %>% 
   ggplot() + 
@@ -774,13 +784,32 @@ ann_5_2 <- ann(as.matrix(dat_5[, c("x1", "x2")]),
 
 plot_convergence(ann_5_2)
 
-predictions_5_2 <- predict(ann_5_2, as.matrix(dat_5[, c("x1", "x2")]))
+expand.grid(x1 = seq(0, 1, 0.05), x2 = seq(0, 1, 0.05)) %>% 
+  mutate(p = p_5(x1, x2)) %>% 
+  mutate(pred = predict(ann_5_2, as.matrix(.[, c("x1", "x2")]))) %>% 
+  ggplot(aes(x = x1, y = x2)) + 
+  geom_tile(aes(fill = pred))
+
+
+
+
+
+ann_5_rcpp <- ann_rcpp(as.matrix(dat_5[, c("x1", "x2")]), 
+               dat_5$y, 
+               q = 5, 
+               alpha = 0.5, 
+               n_iter = 100000, 
+               seed = 2018)
+
+plot_convergence(ann_5_rcpp)
 
 
 expand.grid(x1 = seq(0, 1, 0.05), x2 = seq(0, 1, 0.05)) %>% 
   mutate(p = p_5(x1, x2)) %>% 
-  #rowwise %>% 
-  mutate(pred = predict(ann_5_2, as.matrix(.[, c("x1", "x2")]))) %>% 
+  mutate(pred = predict(ann_5_rcpp, as.matrix(.[, c("x1", "x2")]))) %>% 
   ggplot(aes(x = x1, y = x2)) + 
   geom_tile(aes(fill = pred))
+
+
+
 
