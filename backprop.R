@@ -647,13 +647,13 @@ dat_3 %>%
   theme_bw()
 
 
-ann_3 <- ann(as.matrix(dat_3$x), dat_3$y, q = 4, alpha = 0.1, n_iter = 50000, seed = 2018)
+ann_3 <- ann(as.matrix(dat_3$x), dat_3$y, q = 3, alpha = 0.1, n_iter = 50000, seed = 2018)
 plot_convergence(ann_3)
 
-ann_3_fors <- ann_fors(as.matrix(dat_3$x), dat_3$y, q = 4, alpha = 0.1, n_iter = 50000, seed = 2018)
+ann_3_fors <- ann_fors(as.matrix(dat_3$x), dat_3$y, q = 3, alpha = 0.1, n_iter = 50000, seed = 2018)
 plot_convergence(ann_3_fors)
 
-ann_3_rcpp <- ann_rcpp(as.matrix(dat_3$x), dat_3$y, q = 4, alpha = 0.1, n_iter = 50000, seed = 2018)
+ann_3_rcpp <- ann_rcpp(as.matrix(dat_3$x), dat_3$y, q = 3, alpha = 0.1, n_iter = 50000, seed = 2018)
 plot_convergence(ann_3_rcpp)
 
 #ann_2$gg_deviance_iter
@@ -817,7 +817,7 @@ expand.grid(x1 = seq(0, 1, 0.05), x2 = seq(0, 1, 0.05)) %>%
 
 ann_5_rcpp <- ann_rcpp(as.matrix(dat_5[, c("x1", "x2")]), 
                dat_5$y, 
-               q = 5, 
+               q = 3, 
                alpha = 0.5, 
                n_iter = 100000, 
                seed = 2018)
@@ -827,9 +827,9 @@ plot_convergence(ann_5_rcpp)
 
 ann_5_rcpp_2 <- ann_rcpp(as.matrix(dat_5[, c("x1", "x2")]), 
                        dat_5$y, 
-                       q = 5, 
+                       q = 3, 
                        alpha = 0.5, 
-                       n_iter = 25000, 
+                       n_iter = 15000, 
                        seed = 2018)
 
 plot_convergence(ann_5_rcpp_2)
