@@ -441,11 +441,11 @@ Rcpp::cppFunction(
         sum_beta0 = 0;
         
         for(int k = 0; k < m; k++){
-        pk_minus_yk = p_hat(k) - y(k);
-        dbeta = pk_minus_yk*A(k,l);
-        sum_theta = sum_theta + dbeta*beta(l+1)*(1-A(k,l))*X(k,n);
-        sum_beta = sum_beta + dbeta;
-        sum_beta0 = sum_beta0 + pk_minus_yk;
+          pk_minus_yk = p_hat(k) - y(k);
+          dbeta = pk_minus_yk*A(k,l);
+          sum_theta = sum_theta + dbeta*beta(l+1)*(1-A(k,l))*X(k,n);
+          sum_beta = sum_beta + dbeta;
+          sum_beta0 = sum_beta0 + pk_minus_yk;
         } // end for k to m
         dL_dtheta(n,l) = sum_theta/m;
       } // end for n to nx
