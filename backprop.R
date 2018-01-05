@@ -825,11 +825,22 @@ ann_5_rcpp <- ann_rcpp(as.matrix(dat_5[, c("x1", "x2")]),
 plot_convergence(ann_5_rcpp)
 
 
+ann_5_rcpp_2 <- ann_rcpp(as.matrix(dat_5[, c("x1", "x2")]), 
+                       dat_5$y, 
+                       q = 5, 
+                       alpha = 0.5, 
+                       n_iter = 25000, 
+                       seed = 2018)
+
+plot_convergence(ann_5_rcpp_2)
+
+
 expand.grid(x1 = seq(0, 1, 0.05), x2 = seq(0, 1, 0.05)) %>% 
   mutate(p = p_5(x1, x2)) %>% 
-  mutate(pred = predict(ann_5_rcpp, as.matrix(.[, c("x1", "x2")]))) %>% 
+  mutate(pred = predict(ann_5_rcpp_2, as.matrix(.[, c("x1", "x2")]))) %>% 
   ggplot(aes(x = x1, y = x2)) + 
   geom_tile(aes(fill = pred))
+
 
 
 
