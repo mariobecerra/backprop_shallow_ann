@@ -634,17 +634,17 @@ dat_p_3 %>%
 
 
 
-# ann_3_1 <- nnet::nnet(y ~ x, data = dat_3, size = 3, decay = 0.001, 
-#                       entropy = T, maxit = 500)
-# 
-# dat_3 %>% 
-#   mutate(pred = ann_3_1$fitted.values) %>% 
-#   ggplot(aes(x = x, y = pred)) + 
-#   geom_line() +
-#   geom_line(data = dat_p_3, aes(x = x, y = p), col='red') + 
-#   geom_jitter(data = dat_3, aes(x = x, y = y), col ='black',
-#               position = position_jitter(height = 0.05), alpha = 0.4) +
-#   theme_bw()
+ann_3_1 <- nnet::nnet(y ~ x, data = dat_3, size = 3, decay = 0.001,
+                      entropy = T, maxit = 500)
+
+dat_3 %>%
+  mutate(pred = ann_3_1$fitted.values) %>%
+  ggplot(aes(x = x, y = pred)) +
+  geom_line(col = 'blue') +
+  geom_line(data = dat_p_3, aes(x = x, y = p), col='red') +
+  geom_jitter(data = dat_3, aes(x = x, y = y), col ='black',
+              position = position_jitter(height = 0.05), alpha = 0.4) +
+  theme_bw()
 
 
 ann_3 <- ann(as.matrix(dat_3$x), dat_3$y, q = 4, alpha = 0.1, n_iter = 50000, seed = 2018)
@@ -653,7 +653,7 @@ plot_convergence(ann_3)
 ann_3_fors <- ann_fors(as.matrix(dat_3$x), dat_3$y, q = 4, alpha = 0.1, n_iter = 50000, seed = 2018)
 plot_convergence(ann_3_fors)
 
-ann_3_rcpp <- ann_rcpp(as.matrix(dat_3$x), dat_3$y, q = 20, alpha = 0.1, n_iter = 50000, seed = 2018)
+ann_3_rcpp <- ann_rcpp(as.matrix(dat_3$x), dat_3$y, q = 4, alpha = 0.1, n_iter = 50000, seed = 2018)
 plot_convergence(ann_3_rcpp)
 
 #ann_2$gg_deviance_iter
