@@ -237,28 +237,52 @@ ann_fors <- function(X, y, q = 3, alpha = 0.01, n_iter = 200, init_beta = "rando
     p_hat = sigma_2(A_aug %*% beta)
     #p_hat = compute_p_hat(theta, beta, X)
     
-    p_minus_y = p_hat - y
-    dL_dbeta = colMeans(matrix(rep(p_minus_y, q + 1), ncol = q + 1, byrow = F) * A_aug)
+    #p_minus_y = p_hat - y
+    #dL_dbeta = colMeans(matrix(rep(p_minus_y, q + 1), ncol = q + 1, byrow = F) * A_aug)
     dL_dbeta2 = rep(NA, q+1)
     #dL_dbeta = mean(t(A) %*% p_minus_y)
     
     dL_dtheta <- matrix(rep(NA, nx*q), ncol = q)
-    dl_dtheta_nl <- matrix(rep(NA, nx), ncol = nx, byrow = F)
-    sum_beta0 = 0
+    #dl_dtheta_nl <- matrix(rep(NA, nx), ncol = nx, byrow = F)
+    
     for(l in 1:q){
       for(n in 1:nx){
         sum_theta = 0
         sum_beta = 0
+        sum_beta0 = 0
         for(k in 1:m){
-          sum_theta = sum_theta + (p_hat[k] - y[k])*beta[l+1]*A[k,l]*(1-A[k,l])*X[k,n]
-          sum_beta = sum_beta + (p_hat[k] - y[k])*A[k,l]
-          sum_beta0 = sum_beta0 + (p_hat[k] - y[k])
+          pk_minus_yk = p_hat[k] - y[k]
+          dbeta = pk_minus_yk*A[k,l]
+          sum_theta = sum_theta + dbeta*beta[l+1]*(1-A[k,l])*X[k,n]
+          sum_beta = sum_beta + dbeta
+          sum_beta0 = sum_beta0 + pk_minus_yk
         }
         dL_dtheta[n,l] = sum_theta/m
       }
       dL_dbeta2[l+1] = sum_beta/m
     }
     dL_dbeta2[1] = sum_beta0/m
+    
+    # for(int l = 0; l < q; l++){
+    #   for(int n = 0; n < nx; n++){
+    #     
+    #     sum_theta = 0;
+    #     sum_beta = 0;
+    #     sum_beta0 = 0;
+    #     
+    #     for(int k = 0; k < m; k++){
+    #       pk_minus_yk = p_hat(k) - y(k);
+    #       dbeta = pk_minus_yk*A(k,l);
+    #       sum_theta = sum_theta + dbeta*beta(l+1)*(1-A(k,l))*X(k,n);
+    #       sum_beta = sum_beta + dbeta;
+    #       sum_beta0 = sum_beta0 + pk_minus_yk;
+    #     } // end for k to m
+    #     dL_dtheta(n,l) = sum_theta/m;
+    #   } // end for n to nx
+    #   dL_dbeta(l+1) = sum_beta/m;
+    # } // end for l to q
+    # dL_dbeta(0) = sum_beta0/m;
+    # 
     
     # for(l in 1:ncol(dL_dtheta)){
     #   temp <- (beta[l] * p_minus_y * A[,l]) * (1 - A[,l])
@@ -278,7 +302,7 @@ ann_fors <- function(X, y, q = 3, alpha = 0.01, n_iter = 200, init_beta = "rando
     
     convergence_monitor_df$lossf[i] <- loss_function(p_hat, y)
     convergence_monitor_df$norm_diff_params[i] <- sqrt(norm_diff_beta_sq + norm_diff_theta_sq)
-    convergence_monitor_df$norm_gradient[i] <- sqrt(sum(dL_dbeta^2) + sum(dL_dtheta^2))
+    convergence_monitor_df$norm_gradient[i] <- sqrt(sum(dL_dbeta2^2) + sum(dL_dtheta^2))
     
   }
   
@@ -424,7 +448,7 @@ Rcpp::cppFunction(
         sum_beta0 = sum_beta0 + pk_minus_yk;
         } // end for k to m
         dL_dtheta(n,l) = sum_theta/m;
-        } // end for n to nx
+      } // end for n to nx
       dL_dbeta(l+1) = sum_beta/m;
     } // end for l to q
     dL_dbeta(0) = sum_beta0/m;
